@@ -1,0 +1,39 @@
+name: odds-agent
+
+services:
+  agent:
+    build: .
+    image: local/odds-agent:latest
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      OLLAMA_URL: http://ollama:11434
+    # Accesibil doar de pe acest calculator, nu din rețea.
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - agent-data:/data
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m,uid=10001,gid=10001
+    mem_limit: 512m
+    pids_limit: 128
+    init: true
+    restart: unless-stopped
+
+  # LLM local gratuit. Pornește doar cu: docker compose --profile local-llm up -d
+  ollama:
+    profiles: ["local-llm"]
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-models:/root/.ollama
+    # Fără port publicat: doar agentul îl poate apela, prin rețeaua compose.
+    restart: unless-stopped
+
+volumes:
+  agent-data:
+  ollama-models:
